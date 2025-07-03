@@ -1,0 +1,3 @@
+gcp_project_id = "your-gcp-project-id"
+aws_region     = "us-east-1"
+instance_type  = "t3.micro"
