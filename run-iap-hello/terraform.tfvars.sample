@@ -1,0 +1,5 @@
+project_id         = "your-gcp-project-id"
+region             = "us-central1"
+service_name       = "hello-iap"
+artifact_repo_name = "hello-iap-repo"
+iap_client_id      = "your-iap-client-id"
