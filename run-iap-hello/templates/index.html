@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+  <title>IAP Authentication Status</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+    .header { background-color: #f5f5f5; }
+    .jwt { background-color: #fff3cd; }
+    .success { background-color: #d4edda; }
+    .warning { background-color: #f8d7da; }
+    .code { font-family: monospace; background-color: #f8f9fa; padding: 2px 4px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>IAP Authentication Status</h1>
+
+  <div class="section">
+    <h2>🎯 Authentication Status</h2>
+    {% if email or verified_email %}
+      <p class="success">✅ <strong>Authentication successful</strong></p>
+      <p>User: {{ verified_email or email }}</p>
+    {% else %}
+      <p class="warning">❌ <strong>No authentication found</strong></p>
+      <p>This request may not be coming through IAP, or IAP is not properly configured.</p>
+    {% endif %}
+  </div>
+  
+  <div class="section header">
+    <h2>🔍 Authentication Headers</h2>
+    <p><strong>X-Goog-Authenticated-User-Email:</strong> 
+      <span class="code">{{ email if email else 'Not present' }}</span>
+    </p>
+    <p><strong>X-Goog-Authenticated-User-ID:</strong> 
+      <span class="code">{{ id if id else 'Not present' }}</span>
+    </p>
+    <p><strong>X-Serverless-Authorization:</strong> 
+      <span class="code">{{ serverless_auth if serverless_auth else 'Not present' }}</span>
+    </p>
+    <p><strong>X-Goog-IAP-JWT-Assertion:</strong> 
+      <span class="code">{{ iap_jwt if iap_jwt else 'Not present'  }}</span>
+    </p>
+  </div>
+
+  {% if verified_email %}
+  <div class="section success">
+    <h2>✅ JWT Verified Information</h2>
+    <p><strong>Email:</strong> {{ verified_email }}</p>
+    <p><strong>User ID:</strong> {{ verified_id }}</p>
+    <p><strong>Audience:</strong> {{ verified_aud }}</p>
+    <p><strong>Issuer:</strong> {{ verified_iss }}</p>
+    <p><strong>Hosted Domain:</strong> {{ verified_hd if verified_hd else 'Not specified' }}</p>
+    <p><strong>Google Claims:</strong> {{ verified_goog if verified_goog else 'None' }}</p>
+  </div>
+  {% else %}
+  <div class="section warning">
+    <h2>⚠️ No JWT Verification</h2>
+    <p>JWT verification failed or is not available. This request may not be coming through IAP, or IAP is not properly configured.</p>
+  </div>
+  {% endif %}
+
+</body>
+</html>
