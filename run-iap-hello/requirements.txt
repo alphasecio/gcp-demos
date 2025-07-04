@@ -1,0 +1,5 @@
+Flask==2.3.3
+gunicorn==23.0.0
+cryptography
+python-jose[cryptography]
+requests
