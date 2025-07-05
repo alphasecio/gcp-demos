@@ -116,8 +116,10 @@ resource "google_compute_instance" "jenkins_vm" {
 
   metadata = {
     enable-oslogin = "TRUE"
-    # Startup script to install Jenkins LTS
-    startup-script = file("${path.module}/install-jenkins.sh")
+    # Use templatefile to interpolate Terraform variables into startup script
+    startup-script = templatefile("${path.module}/install-jenkins.sh", {
+      domain_name = var.domain_name
+    })
   }
 
   shielded_instance_config {
