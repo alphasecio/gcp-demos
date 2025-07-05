@@ -9,6 +9,7 @@ This Terraform module provisions a Jenkins LTS instance on Google Cloud Platform
 * Compute Engine VM with Jenkins pre-installed
 * Service account with logging and monitoring roles
 * HTTPS Load Balancer with managed SSL certificate
+* Cloud Router and Cloud NAT for downloading updates
 * IAM bindings for OS Login and IAP access
 * DNS output guidance for custom domain configuration
 
