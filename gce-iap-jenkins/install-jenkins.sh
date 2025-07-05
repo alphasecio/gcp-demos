@@ -80,36 +80,51 @@ sudo systemctl enable nginx
 echo "Nginx configured and started as reverse proxy for Jenkins."
 # --- END: Install and Configure Nginx as a Reverse Proxy ---
 
-# --- START: Configure Jenkins URL ---
+# --- START: Configure Jenkins URL by modifying XML file ---
 # Wait for Jenkins to be fully up and running before attempting configuration
 echo "Waiting for Jenkins to be fully available on port 8080..."
 until curl -s http://127.0.0.1:8080/login > /dev/null; do
   sleep 5
 done
-echo "Jenkins is available. Configuring Jenkins URL..."
+echo "Jenkins is available. Configuring Jenkins URL in XML..."
 
-# Set Jenkins URL via Jenkins CLI
-# First, get the initial admin password
-JENKINS_INITIAL_ADMIN_PASSWORD=$(sudo cat /var/lib/jenkins/secrets/initialAdminPassword)
+JENKINS_HOME="/var/lib/jenkins"
+JENKINS_LOCATION_CONFIG="${JENKINS_HOME}/jenkins.model.JenkinsLocationConfiguration.xml"
 
-# Wait for Jenkins CLI to be available
-echo "Waiting for Jenkins CLI to be available..."
-until curl -s --head http://127.0.0.1:8080/jnlpJars/jenkins-cli.jar > /dev/null; do
-  sleep 5
-done
-echo "Jenkins CLI is available."
+# Ensure the directory exists and has correct permissions
+sudo mkdir -p "$JENKINS_HOME"
+sudo chown jenkins:jenkins "$JENKINS_HOME"
+sudo chmod 755 "$JENKINS_HOME"
 
-# Download jenkins-cli.jar
-curl -s -o /tmp/jenkins-cli.jar http://127.0.0.1:8080/jnlpJars/jenkins-cli.jar
+# Create a basic config file if it doesn't exist (initial setup might create it later)
+if [ ! -f "$JENKINS_LOCATION_CONFIG" ]; then
+  echo "Creating initial Jenkins location configuration file..."
+  sudo tee "$JENKINS_LOCATION_CONFIG" <<EOF_XML
+<?xml version='1.1' encoding='UTF-8'?>
+<jenkins.model.JenkinsLocationConfiguration>
+  <jenkinsUrl>http://localhost:8080/</jenkinsUrl>
+</jenkins.model.JenkinsLocationConfiguration>
+EOF_XML
+  sudo chown jenkins:jenkins "$JENKINS_LOCATION_CONFIG"
+  sudo chmod 644 "$JENKINS_LOCATION_CONFIG"
+fi
 
-# Set the Jenkins URL
-# Note: This command assumes Jenkins is running and accessible on 127.0.0.1:8080
-# and that the admin password is correct.
-echo "Setting Jenkins URL to https://${var.domain_name}..."
-java -jar /tmp/jenkins-cli.jar -s http://127.0.0.1:8080/ -auth admin:"$JENKINS_INITIAL_ADMIN_PASSWORD" \
-  set-jenkins-url "https://${var.domain_name}/" || {
-  echo "Failed to set Jenkins URL. Check Jenkins logs for details."
-}
-# --- END: Configure Jenkins URL ---
+# Use xmlstarlet to update the jenkinsUrl. Install it first if not present.
+echo "Installing xmlstarlet for XML modification..."
+sudo apt-get install -y xmlstarlet
+
+echo "Modifying Jenkins URL in ${JENKINS_LOCATION_CONFIG} to https://${DOMAIN_NAME}/"
+sudo xmlstarlet ed --inplace -u "/jenkins.model.JenkinsLocationConfiguration/jenkinsUrl" -v "https://${DOMAIN_NAME}/" "$JENKINS_LOCATION_CONFIG"
+
+# Verify the change (optional)
+echo "Verifying Jenkins URL in XML:"
+sudo cat "$JENKINS_LOCATION_CONFIG"
+
+# Restart Jenkins service to apply the URL change
+echo "Restarting Jenkins service to apply URL change..."
+sudo systemctl restart jenkins
+
+echo "Jenkins URL configuration completed."
+# --- END: Configure Jenkins URL by modifying XML file ---
 
 echo "Jenkins LTS installation and setup script completed."
