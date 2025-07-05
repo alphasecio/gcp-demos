@@ -21,6 +21,7 @@ This Terraform module provisions a Jenkins LTS instance on Google Cloud Platform
 | `variables.tf`            | Input variable declarations                       |
 | `terraform.tfvars.sample` | Sample input values (copy to `terraform.tfvars`)  |
 | `outputs.tf`              | Useful outputs like instance name and LB IP       |
+| `install-jenkins.sh`      | Bash script to install Jenkins LTS with Nginx     |
 
 ### Requirements
 
