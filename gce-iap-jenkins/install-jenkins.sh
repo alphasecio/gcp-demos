@@ -1,5 +1,6 @@
 #!/bin/bash
 # This script installs Jenkins LTS and configures Nginx as a reverse proxy.
+set -euo pipefail
 
 # Install necessary packages for Jenkins
 echo "Updating apt package list..."
@@ -44,17 +45,17 @@ echo "Configuring Nginx for Jenkins reverse proxy..."
 # Create Nginx configuration for Jenkins
 # Using <<'EOF' to prevent shell variable expansion inside the heredoc
 # Terraform will replace ${var.domain_name} before the script runs on the VM.
-sudo tee /etc/nginx/sites-available/jenkins <<'EOF'
+sudo tee /etc/nginx/sites-available/jenkins <<EOF
 server {
     listen 80;
     server_name ${var.domain_name}; # This will be replaced by Terraform
 
     location / {
         proxy_pass http://127.0.0.1:8080; # Jenkins default port
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_connect_timeout 150;
         proxy_send_timeout 100;
         proxy_read_timeout 100;
