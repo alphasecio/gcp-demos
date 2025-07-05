@@ -80,4 +80,36 @@ sudo systemctl enable nginx
 echo "Nginx configured and started as reverse proxy for Jenkins."
 # --- END: Install and Configure Nginx as a Reverse Proxy ---
 
+# --- START: Configure Jenkins URL ---
+# Wait for Jenkins to be fully up and running before attempting configuration
+echo "Waiting for Jenkins to be fully available on port 8080..."
+until curl -s http://127.0.0.1:8080/login > /dev/null; do
+  sleep 5
+done
+echo "Jenkins is available. Configuring Jenkins URL..."
+
+# Set Jenkins URL via Jenkins CLI
+# First, get the initial admin password
+JENKINS_INITIAL_ADMIN_PASSWORD=$(sudo cat /var/lib/jenkins/secrets/initialAdminPassword)
+
+# Wait for Jenkins CLI to be available
+echo "Waiting for Jenkins CLI to be available..."
+until curl -s --head http://127.0.0.1:8080/jnlpJars/jenkins-cli.jar > /dev/null; do
+  sleep 5
+done
+echo "Jenkins CLI is available."
+
+# Download jenkins-cli.jar
+curl -s -o /tmp/jenkins-cli.jar http://127.0.0.1:8080/jnlpJars/jenkins-cli.jar
+
+# Set the Jenkins URL
+# Note: This command assumes Jenkins is running and accessible on 127.0.0.1:8080
+# and that the admin password is correct.
+echo "Setting Jenkins URL to https://${var.domain_name}..."
+java -jar /tmp/jenkins-cli.jar -s http://127.0.0.1:8080/ -auth admin:"$JENKINS_INITIAL_ADMIN_PASSWORD" \
+  set-jenkins-url "https://${var.domain_name}/" || {
+  echo "Failed to set Jenkins URL. Check Jenkins logs for details."
+}
+# --- END: Configure Jenkins URL ---
+
 echo "Jenkins LTS installation and setup script completed."
