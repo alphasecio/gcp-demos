@@ -30,23 +30,23 @@ resource "google_project_service" "enabled_apis" {
 }
 
 # Set up custom network, subnet and firewall rules
-resource "google_compute_network" "jenkins_network" {
-  name                    = "jenkins-network"
+resource "google_compute_network" "app_network" {
+  name                    = "app-network"
   auto_create_subnetworks = false
 
   depends_on              = [google_project_service.enabled_apis]
 }
 
-resource "google_compute_subnetwork" "jenkins_subnet" {
-  name          = "jenkins-subnet"
+resource "google_compute_subnetwork" "app_subnet" {
+  name          = "app-subnet"
   ip_cidr_range = "10.140.1.0/24"
-  network       = google_compute_network.jenkins_network.id
+  network       = google_compute_network.app_network.id
   region        = var.region
 }
 
 resource "google_compute_firewall" "allow_iap_ssh" {
   name    = "allow-iap-ssh"
-  network = google_compute_network.jenkins_network.name
+  network = google_compute_network.app_network.name
 
   allow {
     protocol = "tcp"
@@ -54,12 +54,12 @@ resource "google_compute_firewall" "allow_iap_ssh" {
   }
 
   source_ranges = ["35.235.240.0/20"]
-  target_tags   = ["jenkins-vm"]
+  target_tags   = ["app-vm"]
 }
 
 resource "google_compute_firewall" "allow_health_check" {
   name    = "allow-health-check"
-  network = google_compute_network.jenkins_network.name
+  network = google_compute_network.app_network.name
 
   allow {
     protocol = "tcp"
@@ -68,35 +68,35 @@ resource "google_compute_firewall" "allow_health_check" {
 
   # Source ranges for Google Cloud Load Balancer health checks and traffic
   source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
-  target_tags   = ["jenkins-vm"]
+  target_tags   = ["app-vm"]
 }
 
 # Create custom service account and IAM bindings
-resource "google_service_account" "jenkins_sa" {
-  account_id   = "jenkins-vm-sa"
-  display_name = "Jenkins VM Service Account"
+resource "google_service_account" "app_sa" {
+  account_id   = "app-vm-sa"
+  display_name = "App VM Service Account"
   
   depends_on   = [google_project_service.enabled_apis]
 }
 
-resource "google_project_iam_member" "jenkins_sa_log_writer" {
+resource "google_project_iam_member" "app_sa_log_writer" {
   project = var.project_id
   role    = "roles/logging.logWriter"
-  member  = "serviceAccount:${google_service_account.jenkins_sa.email}"
+  member  = "serviceAccount:${google_service_account.app_sa.email}"
 }
 
-resource "google_project_iam_member" "jenkins_sa_monitoring_writer" {
+resource "google_project_iam_member" "app_sa_monitoring_writer" {
   project = var.project_id
   role    = "roles/monitoring.metricWriter"
-  member  = "serviceAccount:${google_service_account.jenkins_sa.email}"
+  member  = "serviceAccount:${google_service_account.app_sa.email}"
 }
 
 # Create Compute instance 
-resource "google_compute_instance" "jenkins_vm" {
-  name         = "jenkins-vm"
+resource "google_compute_instance" "app_vm" {
+  name         = "app-vm"
   machine_type = "e2-medium"
   zone         = var.zone
-  tags         = ["jenkins-vm"]
+  tags         = ["app-vm"]
 
   boot_disk {
     initialize_params {
@@ -105,19 +105,19 @@ resource "google_compute_instance" "jenkins_vm" {
   }
 
   network_interface {
-    network    = google_compute_network.jenkins_network.id
-    subnetwork = google_compute_subnetwork.jenkins_subnet.id
+    network    = google_compute_network.app_network.id
+    subnetwork = google_compute_subnetwork.app_subnet.id
   }
 
   service_account {
-    email  = google_service_account.jenkins_sa.email
+    email  = google_service_account.app_sa.email
     scopes = ["cloud-platform"]
   }
 
   metadata = {
     enable-oslogin = "TRUE"
     # Use templatefile to interpolate Terraform variables into startup script
-    startup-script = templatefile("${path.module}/install-jenkins.sh", {
+    startup-script = templatefile("${path.module}/install-app.sh", {
       domain_name = var.domain_name
     })
   }
@@ -134,10 +134,10 @@ resource "google_compute_instance" "jenkins_vm" {
 }
 
 # Create unmanaged instance group
-resource "google_compute_instance_group" "jenkins_uig" {
-  name        = "jenkins-ig"
+resource "google_compute_instance_group" "app_uig" {
+  name        = "app-ig"
   zone        = var.zone
-  instances   = [google_compute_instance.jenkins_vm.id]
+  instances   = [google_compute_instance.app_vm.id]
   named_port {
     name = "http"
     port = 80
@@ -149,8 +149,8 @@ resource "google_compute_instance_group" "jenkins_uig" {
 }
 
 # Create HTTPS Load Balancer related resources
-resource "google_compute_health_check" "jenkins_hc" {
-  name               = "jenkins-health-check"
+resource "google_compute_health_check" "app_hc" {
+  name               = "app-health-check"
   check_interval_sec = 10
   timeout_sec        = 5
   healthy_threshold  = 2
@@ -161,25 +161,25 @@ resource "google_compute_health_check" "jenkins_hc" {
   }
 }
 
-resource "google_compute_backend_service" "jenkins_backend" {
-  name                            = "jenkins-backend"
+resource "google_compute_backend_service" "app_backend" {
+  name                            = "app-backend"
   port_name                       = "http"
   protocol                        = "HTTP"
   load_balancing_scheme           = "EXTERNAL"
   timeout_sec                     = 30
-  health_checks                   = [google_compute_health_check.jenkins_hc.id]
+  health_checks                   = [google_compute_health_check.app_hc.id]
   backend {
-    group = google_compute_instance_group.jenkins_uig.id
+    group = google_compute_instance_group.app_uig.id
   }
 }
 
-resource "google_compute_url_map" "jenkins_url_map" {
-  name            = "jenkins-url-map"
-  default_service = google_compute_backend_service.jenkins_backend.id
+resource "google_compute_url_map" "app_url_map" {
+  name            = "app-url-map"
+  default_service = google_compute_backend_service.app_backend.id
 }
 
-resource "google_compute_url_map" "jenkins_redirect_map" {
-  name            = "jenkins-redirect-map"
+resource "google_compute_url_map" "app_redirect_map" {
+  name            = "app-redirect-map"
   
   default_url_redirect {
     https_redirect         = true
@@ -188,57 +188,57 @@ resource "google_compute_url_map" "jenkins_redirect_map" {
   }
 }
 
-resource "google_compute_global_address" "jenkins_ip" {
-  name = "jenkins-ip"
+resource "google_compute_global_address" "app_ip" {
+  name = "app-ip"
 }
 
-resource "google_compute_managed_ssl_certificate" "jenkins_cert" {
-  name = "jenkins-cert"
+resource "google_compute_managed_ssl_certificate" "app_cert" {
+  name = "app-cert"
   managed {
     domains = [var.domain_name]
   }
 }
 
-resource "google_compute_target_https_proxy" "jenkins_https_proxy" {
-  name             = "jenkins-https-proxy"
-  url_map          = google_compute_url_map.jenkins_url_map.id
-  ssl_certificates = [google_compute_managed_ssl_certificate.jenkins_cert.id]
+resource "google_compute_target_https_proxy" "app_https_proxy" {
+  name             = "app-https-proxy"
+  url_map          = google_compute_url_map.app_url_map.id
+  ssl_certificates = [google_compute_managed_ssl_certificate.app_cert.id]
 }
 
-resource "google_compute_target_http_proxy" "jenkins_http_proxy" {
-  name    = "jenkins-http-proxy"
-  url_map = google_compute_url_map.jenkins_redirect_map.id
+resource "google_compute_target_http_proxy" "app_http_proxy" {
+  name    = "app-http-proxy"
+  url_map = google_compute_url_map.app_redirect_map.id
 }
 
-resource "google_compute_global_forwarding_rule" "jenkins_https_forwarding_rule" {
+resource "google_compute_global_forwarding_rule" "app_https_forwarding_rule" {
   name                  = "https-forwarding-rule"
-  target                = google_compute_target_https_proxy.jenkins_https_proxy.id
-  ip_address            = google_compute_global_address.jenkins_ip.id
+  target                = google_compute_target_https_proxy.app_https_proxy.id
+  ip_address            = google_compute_global_address.app_ip.id
   port_range            = "443"
   load_balancing_scheme = "EXTERNAL"
   ip_protocol           = "TCP"
 }
 
-resource "google_compute_global_forwarding_rule" "jenkins_http_forwarding_rule" {
+resource "google_compute_global_forwarding_rule" "app_http_forwarding_rule" {
   name                  = "http-forwarding-rule"
-  target                = google_compute_target_http_proxy.jenkins_http_proxy.id
-  ip_address            = google_compute_global_address.jenkins_ip.id
+  target                = google_compute_target_http_proxy.app_http_proxy.id
+  ip_address            = google_compute_global_address.app_ip.id
   port_range            = "80"
   load_balancing_scheme = "EXTERNAL"
   ip_protocol           = "TCP"
 }
 
 # Create a Cloud Router, and configure Cloud NAT on the router
-resource "google_compute_router" "jenkins_router" {
-  name    = "jenkins-router"
+resource "google_compute_router" "app_router" {
+  name    = "app-router"
   region  = var.region
-  network = google_compute_network.jenkins_network.id
+  network = google_compute_network.app_network.id
 }
 
-resource "google_compute_router_nat" "jenkins_nat" {
-  name                          = "jenkins-nat"
-  router                        = google_compute_router.jenkins_router.name
-  region                        = google_compute_router.jenkins_router.region
+resource "google_compute_router_nat" "app_nat" {
+  name                          = "app-nat"
+  router                        = google_compute_router.app_router.name
+  region                        = google_compute_router.app_router.region
   nat_ip_allocate_option        = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
   log_config {
@@ -251,14 +251,14 @@ resource "google_compute_router_nat" "jenkins_nat" {
 resource "google_iap_tunnel_instance_iam_member" "iap_tunnel_accessor" {
   project  = var.project_id
   zone     = var.zone
-  instance = google_compute_instance.jenkins_vm.name
+  instance = google_compute_instance.app_vm.name
   role     = "roles/iap.tunnelResourceAccessor"
   member        = "user:${var.iap_user_email}"
 }
 
 resource "google_iap_web_backend_service_iam_member" "iap_web_user" {
   project             = var.project_id
-  web_backend_service = google_compute_backend_service.jenkins_backend.name
+  web_backend_service = google_compute_backend_service.app_backend.name
   role                = "roles/iap.httpsResourceAccessor"
   member        = "user:${var.iap_user_email}"
 }
@@ -266,7 +266,7 @@ resource "google_iap_web_backend_service_iam_member" "iap_web_user" {
 resource "google_compute_instance_iam_member" "os_login_user" {
   project       = var.project_id
   zone          = var.zone
-  instance_name = google_compute_instance.jenkins_vm.name
+  instance_name = google_compute_instance.app_vm.name
   role          = "roles/compute.osLogin"        # Use "roles/compute.osAdminLogin" instead for administrative (sudo) access
   member        = "user:${var.iap_user_email}"
 }
