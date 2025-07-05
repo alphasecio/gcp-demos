@@ -117,33 +117,7 @@ resource "google_compute_instance" "jenkins_vm" {
   metadata = {
     enable-oslogin = "TRUE"
     # Startup script to install Jenkins LTS
-    startup-script = <<-EOF
-      #!/bin/bash
-      # Install necessary packages for Jenkins
-      sudo apt-get update
-      sudo apt-get install -y openjdk-17-jdk # Jenkins requires Java 11 or 17
-      sudo apt-get install -y ca-certificates curl gnupg
-
-      # Add Jenkins GPG key
-      sudo mkdir -p /etc/apt/keyrings
-      curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
-        /etc/apt/keyrings/jenkins-keyring.asc > /dev/null
-
-      # Add Jenkins APT repository
-      echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] \
-        https://pkg.jenkins.io/debian-stable binary/" | sudo tee \
-        /etc/apt/sources.list.d/jenkins.list > /dev/null
-
-      # Update apt cache and install Jenkins
-      sudo apt-get update
-      sudo apt-get install -y jenkins
-
-      # Start and enable Jenkins service
-      sudo systemctl start jenkins
-      sudo systemctl enable jenkins
-
-      echo "Jenkins LTS installation and startup script completed." >> /var/log/startup-script.log
-    EOF
+    startup-script = file("${path.module}/install-jenkins.sh")
   }
 
   shielded_instance_config {
@@ -250,6 +224,25 @@ resource "google_compute_global_forwarding_rule" "jenkins_http_forwarding_rule" 
   port_range            = "80"
   load_balancing_scheme = "EXTERNAL"
   ip_protocol           = "TCP"
+}
+
+# Create a Cloud Router, and configure Cloud NAT on the router
+resource "google_compute_router" "jenkins_router" {
+  name    = "jenkins-router"
+  region  = var.region
+  network = google_compute_network.jenkins_network.id
+}
+
+resource "google_compute_router_nat" "jenkins_nat" {
+  name                          = "jenkins-nat"
+  router                        = google_compute_router.jenkins_router.name
+  region                        = google_compute_router.jenkins_router.region
+  nat_ip_allocate_option        = "AUTO_ONLY"
+  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+  log_config {
+    enable = true
+    filter = "ERRORS_ONLY"
+  }
 }
 
 # Grant the IAP-Secured Tunnel User, IAP-Secured Web User and OS Login User roles
