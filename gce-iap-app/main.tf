@@ -116,9 +116,7 @@ resource "google_compute_instance" "app_vm" {
 
   metadata = {
     enable-oslogin = "TRUE"
-    startup-script = var.startup_script, {
-      domain_name = var.domain_name
-    })
+    startup-script = var.startup_script
   }
 
   shielded_instance_config {
