@@ -20,6 +20,11 @@ variable "image_name" {
   type        = string
 }
 
+variable "startup_script" {
+  description = "Startup script to provision the VM"
+  type        = string
+}
+
 variable "domain_name" {
   description = "Domain name for SSL certificate"
   type        = string
