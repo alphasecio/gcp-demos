@@ -116,8 +116,7 @@ resource "google_compute_instance" "app_vm" {
 
   metadata = {
     enable-oslogin = "TRUE"
-    # Use templatefile to interpolate Terraform variables into startup script
-    startup-script = templatefile("${path.module}/install-app.sh", {
+    startup-script = var.startup_script, {
       domain_name = var.domain_name
     })
   }
