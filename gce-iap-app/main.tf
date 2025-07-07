@@ -251,6 +251,8 @@ resource "google_iap_tunnel_instance_iam_member" "iap_tunnel_accessor" {
   instance = google_compute_instance.app_vm.name
   role     = "roles/iap.tunnelResourceAccessor"
   member        = "user:${var.iap_user_email}"
+
+  depends_on    = [google_project_service.enabled_apis]
 }
 
 resource "google_iap_web_backend_service_iam_member" "iap_web_user" {
@@ -258,6 +260,8 @@ resource "google_iap_web_backend_service_iam_member" "iap_web_user" {
   web_backend_service = google_compute_backend_service.app_backend.name
   role                = "roles/iap.httpsResourceAccessor"
   member        = "user:${var.iap_user_email}"
+
+  depends_on    = [google_project_service.enabled_apis]
 }
 
 resource "google_compute_instance_iam_member" "os_login_user" {
@@ -266,4 +270,6 @@ resource "google_compute_instance_iam_member" "os_login_user" {
   instance_name = google_compute_instance.app_vm.name
   role          = "roles/compute.osLogin"        # Use "roles/compute.osAdminLogin" instead for administrative (sudo) access
   member        = "user:${var.iap_user_email}"
+
+  depends_on    = [google_project_service.enabled_apis]
 }
