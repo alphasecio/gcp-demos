@@ -2,6 +2,6 @@ project_id     = "your-project-id"
 region         = "us-central1"
 zone           = "us-central1-a"
 image_name     = "bitnami-launchpad/jenkins-2-504-3-r0-debian-12-amd64"
-startup_script = file("install-jenkins.sh")
+startup_script = "install-jenkins.sh"
 domain_name    = "jenkins.yourdomain.com"
 iap_user_email = "your-email-address"
