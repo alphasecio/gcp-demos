@@ -1,0 +1,156 @@
+pipeline {
+    agent any
+
+    environment {
+        GCP_PROJECT_ID = 'YOUR_PROJECT_ID'
+        GCP_PROJECT_NUMBER = 'YOUR_PROJECT_NUMBER'
+        GCS_SERVICE_ACCOUNT_NAME = 'YOUR_SA'
+        GCS_SERVICE_ACCOUNT = '${GCS_SERVICE_ACCOUNT_NAME}@${GCP_PROJECT_ID}.iam.gserviceaccount.com'
+        OIDC_ISSUER_URL = 'YOUR_OIDC_ISSUER_URL'
+        WIF_POOL = 'YOUR_WIF_POOL'
+        WIF_PROVIDER = 'YOUR_WIF_PROVIDER'
+    }
+
+    stages {
+        stage('Generate ID Token from Mock OIDC IdP') {
+            steps {
+                script {
+                    def idToken
+                    def subjectClaim = GCS_SERVICE_ACCOUNT_NAME
+                    def emailClaim = GCS_SERVICE_ACCOUNT
+                    def jsonPayload = "{\"sub\": \"${subjectClaim}\", \"email\": \"${emailClaim}\"}"
+    
+                    idToken = sh(
+                        script: """
+                            curl -sS -f -X POST "${OIDC_ISSUER_URL}/generate-token" \\
+                                -H "Content-Type: application/json" \\
+                                -d '${jsonPayload}' \\
+                                | jq -r '.id_token'
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    if (!idToken) {
+                        error "Failed to obtain ID token from mock IdP. Check OIDC_ISSUER_URL and mock IdP status."
+                    }
+
+                    // Store the obtained ID token in a pipeline environment variable
+                    env.ID_TOKEN = idToken
+                    echo "Successfully obtained ID Token from the OIDC IdP."
+                }
+            }
+        }
+        
+        stage('Exchange ID Token for Federated Token (STS)') {
+            steps {
+                script {
+                    def federatedToken
+                    def stsAudience = "//${"iam.googleapis.com/projects/${GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/${WIF_POOL}/providers/${WIF_PROVIDER}"}"
+                    def stsUrl = "https://sts.googleapis.com/v1/token"
+
+                    def stsPayload = """
+                    {
+                        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                        "audience": "${stsAudience}",
+                        "scope": "https://www.googleapis.com/auth/cloud-platform",
+                        "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                        "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
+                        "subject_token": "${env.ID_TOKEN}"
+                    }
+                    """
+                    
+                    echo "Exchanging ID Token for Federated Token via STS..."
+                    
+                    federatedToken = sh(
+                        script: """
+                            curl -sS -f -X POST "${stsUrl}" \\
+                                -H "Content-Type: application/json" \\
+                                -d '${stsPayload}' \\
+                                | jq -r '.access_token'
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    if (!federatedToken) {
+                        error "Failed to obtain federated token from STS. Check STS configuration and ID token."
+                    }
+
+                    env.GCP_FEDERATED_TOKEN = federatedToken
+                    echo "Successfully obtained Google Cloud Federated Access Token."
+                }
+            }
+        }
+        
+        stage('Impersonate Service Account') {
+            steps {
+                script {
+                    def saAccessToken
+                    def impersonationUrl = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${GCS_SERVICE_ACCOUNT}:generateAccessToken"
+                    def impersonationPayload = """
+                    {
+                        "scope": ["https://www.googleapis.com/auth/cloud-platform"],
+                        "lifetime": "3600s"
+                    }
+                    """
+
+                    echo "Impersonating service account ${GCS_SERVICE_ACCOUNT} using federated token..."
+
+                    saAccessToken = sh(
+                        script: """
+                            curl -sS -f -X POST "${impersonationUrl}" \\
+                                -H "Authorization: Bearer ${env.GCP_FEDERATED_TOKEN}" \\
+                                -H "Content-Type: application/json" \\
+                                -d '${impersonationPayload}' \\
+                                | jq -r '.accessToken'
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    if (!saAccessToken) {
+                        error "Failed to impersonate service account. Check IAM permissions for Workload Identity User role on ${GCS_SERVICE_ACCOUNT}."
+                    }
+
+                    env.GCP_ACCESS_TOKEN = saAccessToken
+                    echo "Successfully obtained Service Account Access Token."
+                }
+            }
+        }
+    
+        stage('List GCS Buckets') {
+            steps {
+                script {
+                    def gcsListAllBucketsUrl = "https://storage.googleapis.com/storage/v1/b?project=${GCP_PROJECT_ID}"
+                    
+                    def gcsBuckets = sh(
+                        script: """
+                            curl -sS -f -X GET "${gcsListAllBucketsUrl}" \\
+                                -H "Authorization: Bearer ${env.GCP_ACCESS_TOKEN}" \\
+                                -H "Accept: application/json" \\
+                                | jq -r '.items[].name'
+                        """,
+                        returnStdout: true
+                    ).trim()
+                    
+                    def listOfGcsBuckets = gcsBuckets.split('\n')
+                    
+                    if (listOfGcsBuckets.size() > 0 && listOfGcsBuckets[0] != "") { // Check if list is not empty
+                        echo "--- GCS Buckets in Project ${GCP_PROJECT_ID} ---"
+                        echo "Found ${listOfGcsBuckets.size()} bucket(s):"
+                        listOfGcsBuckets.each { name ->
+                            echo "- ${name}"
+                        }
+                        echo "------------------------------------------------"
+                    } else {
+                        echo "No buckets found in project '${GCP_PROJECT_ID}'. The API returned no items or jq couldn't find names."
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            deleteDir()
+        }
+    }
+}
