@@ -51,18 +51,6 @@ kubectl create secret tls webapp-tls-secret \
 # Confirm that the TLS secret was created
 kubectl get secret webapp-tls-secret
 
-# Create the ConfigMap containing HTML and Nginx config (use app-code-configmap.yaml from this repo)
-nano app-code-configmap.yaml
-
-# Create the Deployment manifest (use deployment.yaml from this repo)
-nano deployment.yaml
-
-# Create the Services and BackendConfigs manifest (use services-and-backendconfigs.yaml from this repo)
-nano services-and-backendconfigs.yaml
-
-# Create the Ingress manifest (use ingress.yaml from this repo)
-nano ingress.yaml
-
 # Apply the ConfigMap (HTML content + Nginx config)
 kubectl apply -f app-code-configmap.yaml
 
