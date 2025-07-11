@@ -1,0 +1,58 @@
+# ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webapp-ingress
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.allow-http: "false"
+    networking.gke.io/managed-certificates: webapp-ssl-cert
+    kubernetes.io/ingress.global-static-ip-name: webapp-static-ip
+  labels:
+    app: webapp-ingress
+spec:
+  tls:
+  - hosts:
+    - your-domain.com
+    secretName: webapp-tls-secret
+  rules:
+  - host: your-domain.com
+    http:
+      paths:
+      - path: /app1
+        pathType: Prefix
+        backend:
+          service:
+            name: app1-service
+            port:
+              number: 80
+      - path: /app2
+        pathType: Prefix
+        backend:
+          service:
+            name: app2-service
+            port:
+              number: 80
+      - path: /app3
+        pathType: Prefix
+        backend:
+          service:
+            name: app3-service
+            port:
+              number: 80
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: default-app-service
+            port:
+              number: 80
+
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate 
+metadata:
+  name: webapp-ssl-cert
+spec:
+  domains: 
+  - your-domain.com
