@@ -1,0 +1,113 @@
+# services-and-backendconfigs.yaml
+---
+# Kubernetes Service for Default App - exposes the default path.
+apiVersion: v1
+kind: Service
+metadata:
+  name: default-app-service
+  annotations:
+    cloud.google.com/backend-config: '{"default": "default-app-backendconfig"}'
+    cloud.google.com/neg: '{"ingress": true}'
+  labels:
+    app: default-app
+spec:
+  type: NodePort # NodePort is common for GKE Ingress, but ClusterIP also works with NEGs
+  selector:
+    app: simple-webapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80 # The port your Nginx container is listening on
+---
+# BackendConfig for Default App - enables IAP for the default-app-service.
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: default-app-backendconfig
+spec:
+  iap:
+    enabled: true
+---
+# Kubernetes Service for App 1 - exposes the /app1 path.
+apiVersion: v1
+kind: Service
+metadata:
+  name: app1-service
+  annotations:
+    cloud.google.com/backend-config: '{"default": "app1-backendconfig"}'
+    cloud.google.com/neg: '{"ingress": true}'
+  labels:
+    app: app1
+spec:
+  type: NodePort
+  selector:
+    app: simple-webapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+# BackendConfig for App 1 - enables IAP for the app1-service.
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: app1-backendconfig
+spec:
+  iap:
+    enabled: true
+---
+# Kubernetes Service for App 2 - exposes the /app2 path.
+apiVersion: v1
+kind: Service
+metadata:
+  name: app2-service
+  annotations:
+    cloud.google.com/backend-config: '{"default": "app2-backendconfig"}'
+    cloud.google.com/neg: '{"ingress": true}'
+  labels:
+    app: app2
+spec:
+  type: NodePort
+  selector:
+    app: simple-webapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+# BackendConfig for App 2 - enables IAP for the app2-service.
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: app2-backendconfig
+spec:
+  iap:
+    enabled: true
+---
+# Kubernetes Service for App 3 - exposes the /app3 path.
+apiVersion: v1
+kind: Service
+metadata:
+  name: app3-service
+  annotations:
+    cloud.google.com/backend-config: '{"default": "app3-backendconfig"}'
+    cloud.google.com/neg: '{"ingress": true}'
+  labels:
+    app: app3
+spec:
+  type: NodePort
+  selector:
+    app: simple-webapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+# BackendConfig for App 3 - enables IAP for the app3-service.
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: app3-backendconfig
+spec:
+  iap:
+    enabled: true
