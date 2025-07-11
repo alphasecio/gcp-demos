@@ -1,0 +1,117 @@
+# ConfigMap: HTML files
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webapp-html-config
+data:
+  data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Default App</title>
+      <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+      <style>
+        body { font-family: "Inter", sans-serif; }
+      </style>
+    </head>
+    <body class="bg-gray-100 flex items-center justify-center h-screen">
+      <div class="text-center p-8 bg-white rounded-lg shadow-lg">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">Welcome to the Default App!</h1>
+        <p class="text-lg text-gray-600">This is the default path.</p>
+      </div>
+    </body>
+    </html>
+  app1.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>App 1</title>
+      <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+      <style>
+        body { font-family: "Inter", sans-serif; }
+      </style>
+    </head>
+    <body class="bg-blue-100 flex items-center justify-center h-screen">
+      <div class="text-center p-8 bg-white rounded-lg shadow-lg">
+        <h1 class="text-4xl font-bold text-blue-800 mb-4">Hello from App 1!</h1>
+        <p class="text-lg text-blue-600">You reached the /app1 path.</p>
+      </div>
+    </body>
+    </html>
+  app2.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>App 2</title>
+      <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+      <style>
+        body { font-family: "Inter", sans-serif; }
+      </style>
+    </head>
+    <body class="bg-green-100 flex items-center justify-center h-screen">
+      <div class="text-center p-8 bg-white rounded-lg shadow-lg">
+        <h1 class="text-4xl font-bold text-green-800 mb-4">Greetings from App 2!</h1>
+        <p class="text-lg text-green-600">You reached the /app2 path.</p>
+      </div>
+    </body>
+    </html>
+  app3.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>App 3</title>
+      <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+      <style>
+        body { font-family: "Inter", sans-serif; }
+      </style>
+    </head>
+    <body class="bg-purple-100 flex items-center justify-center h-screen">
+      <div class="text-center p-8 bg-white rounded-lg shadow-lg">
+        <h1 class="text-4xl font-bold text-purple-800 mb-4">Welcome to App 3!</h1>
+        <p class="text-lg text-purple-600">You reached the /app3 path.</p>
+      </div>
+    </body>
+    </html>
+
+---
+# ConfigMap: Nginx config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webapp-nginx-config
+data:
+  nginx.conf: |
+    events {
+      worker_connections 1024;
+    }
+    http {
+      include mime.types;
+      default_type application/octet-stream;
+      sendfile on;
+      keepalive_timeout 65;
+
+      server {
+        listen 80;
+
+        location / {
+          root /usr/share/nginx/html;
+          index index.html;
+        }
+
+        location /app1 {
+          alias /usr/share/nginx/html/app1.html;
+          add_header Content-Type "text/html";
+        }
+
+        location /app2 {
+          alias /usr/share/nginx/html/app2.html;
+          add_header Content-Type "text/html";
+        }
+
+        location /app3 {
+          alias /usr/share/nginx/html/app3.html;
+          add_header Content-Type "text/html";
+        }
+      }
+    }
