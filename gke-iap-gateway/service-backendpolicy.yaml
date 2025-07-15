@@ -34,7 +34,7 @@ spec:
       enabled: true
       oauth2ClientSecret:
         name: iap-oauth-secret
-      clientID: "REPLACE-WITH-CLIENT-ID"
+      clientID: "CLIENT-ID"
   targetRef:
     group: ""
     kind: Service
@@ -51,7 +51,7 @@ spec:
       enabled: true
       oauth2ClientSecret:
         name: iap-oauth-secret
-      clientID: "REPLACE-WITH-CLIENT-ID"
+      clientID: "CLIENT-ID"
   targetRef:
     group: ""
     kind: Service
