@@ -88,3 +88,7 @@ Run `cleanup.sh` to remove all resources:
 * Deletes the GKE cluster.
 
 ⚠️ Update `ZONE` in the script first.
+
+
+## ⚠️ Disclaimer
+This project is a proof of concept intended for educational and demonstration purposes only. It is not officially supported or certified by Google, and is definitely not production-ready. Use at your own risk. Features, APIs, and configurations may change and require adaptation. Before using in a real-world environment, thorough testing, hardening, and security reviews are strongly recommended.
