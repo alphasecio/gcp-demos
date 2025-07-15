@@ -1,0 +1,71 @@
+# gateway-httproute-grants.yaml
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: webapp-gateway
+  namespace: gateway
+  annotations:
+    networking.gke.io/certmap: iapgw-webapp-cert-map
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+  - name: https
+    port: 443
+    protocol: HTTPS
+  addresses:
+  - type: NamedAddress
+    value: webappgw-static-ip
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: webapp-route
+  namespace: gateway
+spec:
+  parentRefs:
+  - name: webapp-gateway
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: app1-service
+      namespace: app1
+      port: 80
+      weight: 50
+    - name: app2-service
+      namespace: app2
+      port: 80
+      weight: 50
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: grant-app1
+  namespace: app1
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: gateway
+  to:
+  - group: ""
+    kind: Service
+    name: app1-service
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: grant-app2
+  namespace: app2
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: gateway
+  to:
+  - group: ""
+    kind: Service
+    name: app2-service
+---
