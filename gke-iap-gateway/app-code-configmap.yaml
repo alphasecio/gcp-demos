@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webapp-html-config
+  namespace: app1
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>App 1</title>
+      <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+      <style>
+        body { font-family: "Inter", sans-serif; }
+      </style>
+    </head>
+    <body class="bg-gray-100 flex items-center justify-center h-screen">
+      <div class="text-center p-8 bg-white rounded-lg shadow-lg">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">Hello from App 1!</h1>
+      </div>
+    </body>
+    </html>
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webapp-html-config
+  namespace: app2
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>App 2</title>
+      <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+      <style>
+        body { font-family: "Inter", sans-serif; }
+      </style>
+    </head>
+    <body class="bg-gray-100 flex items-center justify-center h-screen">
+      <div class="text-center p-8 bg-white rounded-lg shadow-lg">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">Hello from App 2!</h1>
+      </div>
+    </body>
+    </html>
