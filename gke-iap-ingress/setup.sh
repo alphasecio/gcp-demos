@@ -1,13 +1,21 @@
+#!/bin/bash
+set -e
+
+# Set required variables
+PROJECT_ID="YOUR-PROJECT-ID"
+ZONE="YOUR-ZONE"
+SUBNET="YOUR-SUBNET"
+
 # Authenticate with Google Cloud
 gcloud auth login
 
 # Set the active project
-gcloud config set project YOUR_PROJECT_ID
+gcloud config set project "$PROJECT_ID"
 
 # Create a GKE cluster with secure and private networking settings
 gcloud container clusters create webapp-cluster \
-  --zone YOUR_ZONE \
-  --subnetwork YOUR_SUBNET \
+  --zone "$ZONE" \
+  --subnetwork "$SUBNET" \
   --num-nodes 2 \
   --release-channel stable \
   --enable-network-policy \
@@ -24,12 +32,12 @@ gcloud container clusters create webapp-cluster \
 # Update master authorized networks to current IP
 # OPTIONAL: Use only if your Cloud Shell connection gets disconnected or you create a new session
 gcloud container clusters update webapp-cluster \
-  --zone YOUR_ZONE \
+  --zone "$ZONE" \
   --enable-master-authorized-networks \
   --master-authorized-networks=$(curl -s ifconfig.me)/32
 
 # Get cluster credentials for kubectl access
-gcloud container clusters get-credentials webapp-cluster --zone YOUR_ZONE
+gcloud container clusters get-credentials webapp-cluster --zone "$ZONE"
 
 # Reserve a global static IP for the ingress
 gcloud compute addresses create webapp-static-ip --global
