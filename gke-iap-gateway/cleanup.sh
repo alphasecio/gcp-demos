@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+# Set required variables
 ZONE="YOUR_ZONE"
 
 # Delete all Kubernetes resources
