@@ -1,0 +1,56 @@
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app1-deploy
+  namespace: app1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iapgw-webapp
+  template:
+    metadata:
+      labels:
+        app: iapgw-webapp
+    spec:
+      containers:
+      - name: web
+        image: nginx
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+        ports:
+        - containerPort: 80
+      volumes:
+      - name: html
+        configMap:
+          name: webapp-html-config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app2-deploy
+  namespace: app2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iapgw-webapp
+  template:
+    metadata:
+      labels:
+        app: iapgw-webapp
+    spec:
+      containers:
+      - name: web
+        image: nginx
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+        ports:
+        - containerPort: 80
+      volumes:
+      - name: html
+        configMap:
+          name: webapp-html-config
