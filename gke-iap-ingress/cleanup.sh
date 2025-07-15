@@ -1,4 +1,8 @@
 #!/bin/bash
+set -e
+
+# Set required variables
+ZONE = "YOUR_ZONE"
 
 # Delete the Ingress resource
 kubectl delete -f ingress.yaml
@@ -22,4 +26,4 @@ rm -f dummy.crt dummy.key
 gcloud compute addresses delete webapp-static-ip --global --quiet
 
 # Delete the GKE cluster
-gcloud container clusters delete webapp-cluster --zone YOUR_ZONE --quiet
+gcloud container clusters delete webapp-cluster --zone "$ZONE" --quiet
