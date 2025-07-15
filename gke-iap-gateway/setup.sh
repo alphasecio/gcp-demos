@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 
 # Set required variables
@@ -8,7 +7,7 @@ ZONE="YOUR-ZONE"
 SUBNET="YOUR-SUBNET"
 CLIENT_ID="YOUR-OAUTH-CLIENT-ID"
 CLIENT_SECRET="YOUR-OAUTH-CLIENT-SECRET"
-DOMAIN="YOUR-DOMAIN"
+DOMAIN="YOUR-DOMAIN" # (without `https://` prefix)
 
 # Authenticate with Google Cloud
 gcloud auth login
