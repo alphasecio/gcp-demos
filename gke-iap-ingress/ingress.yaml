@@ -13,10 +13,10 @@ metadata:
 spec:
   tls:
   - hosts:
-    - your-domain.com
+    - "$DOMAIN"
     secretName: webapp-tls-secret
   rules:
-  - host: your-domain.com
+  - host: "$DOMAIN"
     http:
       paths:
       - path: /app1
@@ -55,4 +55,4 @@ metadata:
   name: webapp-ssl-cert
 spec:
   domains: 
-  - your-domain.com
+  - "$DOMAIN"
