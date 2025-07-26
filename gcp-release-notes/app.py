@@ -80,13 +80,14 @@ def extract_structured_info(entry):
 def summarize_with_gemini(releases):
     genai_client = genai.Client(api_key=GOOGLE_API_KEY)
     prompt_lines = [
-        "Create a clean, readable HTML email summary of the following GCP release notes.",
-        "Use the format below with <strong> for product names, and wrap the summaries in <ul><li> bullets.",
-        "Example:",
+        "Summarize the following GCP release notes into clean, readable HTML.",
+        "Use this exact format: <strong> for product names, and <ul><li> bullets for individual summaries.",
+        "",
         "<strong>Product Name</strong>",
         "<ul><li>Brief summary of feature or announcement</li></ul>",
         "",
-        "Only include features and announcements. Keep each bullet short (1–2 lines max).",
+        "Include only actual features and announcements. Omit intros, conclusions, and commentary. Each bullet must be concise (1–2 lines max).",
+        "Output only valid HTML following the structure above - no explanations, headings, or preamble.",
         "Now summarize:"
     ]
 
